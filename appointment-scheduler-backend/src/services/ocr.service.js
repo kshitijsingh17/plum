@@ -1,30 +1,25 @@
 // services/ocr.service.js
-// services/ocr.service.js
 import vision from '@google-cloud/vision';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize client from in-memory credentials (works in serverless like Vercel)
-let gcpCredentials = null;
+/**
+ * Get GCP credentials from env variables or fallback to ADC
+ */
+export const getGCPCredentials = () => {
+  return process.env.GCP_PRIVATE_KEY
+    ? {
+        credentials: {
+          client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+          private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        },
+        projectId: process.env.GCP_PROJECT_ID,
+      }
+    : {}; // fallback to local ADC
+};
 
-// Use JSON env variable (recommended: set GOOGLE_APPLICATION_CREDENTIALS_JSON in Vercel)
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-  try {
-    gcpCredentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-  } catch (err) {
-    console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', err);
-  }
-}
-
-const client = gcpCredentials
-  ? new vision.ImageAnnotatorClient({ credentials: gcpCredentials })
-  : new vision.ImageAnnotatorClient(); // fallback to local ADC if present
-
-export default client;
-
-
-// Initialize client (auto-loads credentials from GOOGLE_APPLICATION_CREDENTIALS)
-
+// Initialize Vision client
+const client = new vision.ImageAnnotatorClient(getGCPCredentials());
 
 /**
  * Clean OCR text: keep only letters, numbers, and spaces
@@ -33,7 +28,7 @@ export default client;
 const cleanText = (text) => {
   if (!text) return '';
   return text
-    .replace(/[^\w\s]/g, ' ') // remove all non-word characters except spaces
+    .replace(/[^\w\s]/g, ' ') // remove all non-word chars except spaces
     .replace(/\s+/g, ' ')     // collapse multiple spaces
     .trim();
 };
@@ -48,23 +43,19 @@ export const processInput = async (input) => {
       return { status: 'needs_clarification', message: 'Missing or empty input for OCR' };
     }
 
-    // Plain text passthrough
     if (typeof input === 'string' && !input.startsWith('data:image') && !input.startsWith('http')) {
       return { raw_text: cleanText(input.trim()), confidence: 1.0 };
     }
 
-    // Base64 string
     if (typeof input === 'string' && input.startsWith('data:image')) {
       const buffer = Buffer.from(input.split(',')[1], 'base64');
       return await processBuffer(buffer);
     }
 
-    // URL
     if (typeof input === 'string' && input.startsWith('http')) {
       return await processImageUri(input);
     }
 
-    // Buffer
     if (Buffer.isBuffer(input)) {
       return await processBuffer(input);
     }
@@ -76,7 +67,7 @@ export const processInput = async (input) => {
 };
 
 /**
- * Process image buffer using documentTextDetection and compute approximate confidence
+ * Process image buffer using documentTextDetection
  * @param {Buffer} buffer
  */
 export const processBuffer = async (buffer) => {
@@ -92,27 +83,19 @@ export const processBuffer = async (buffer) => {
       return { status: 'needs_clarification', message: 'Google OCR returned empty text' };
     }
 
-    // Compute average block confidence
-    let totalConfidence = 0;
-    let count = 0;
-    annotation.pages.forEach(page => {
+    // Average confidence
+    let totalConfidence = 0, count = 0;
+    annotation.pages.forEach(page =>
       page.blocks.forEach(block => {
         if (block.confidence !== undefined) {
           totalConfidence += block.confidence;
           count++;
         }
-      });
-    });
+      })
+    );
 
-    const avgConfidence = count > 0 ? totalConfidence / count : 0.9; // fallback
-
-    // Clean the text before returning
-    const cleanedText = cleanText(annotation.text);
-
-    return {
-      raw_text: cleanedText,
-      confidence: parseFloat(avgConfidence.toFixed(2))
-    };
+    const avgConfidence = count > 0 ? totalConfidence / count : 0.9;
+    return { raw_text: cleanText(annotation.text), confidence: parseFloat(avgConfidence.toFixed(2)) };
   } catch (err) {
     return { status: 'needs_clarification', message: `Google OCR failed: ${err.message}` };
   }
@@ -131,27 +114,18 @@ export const processImageUri = async (uri) => {
       return { status: 'needs_clarification', message: 'Google OCR returned empty text from URL' };
     }
 
-    // Average confidence
-    let totalConfidence = 0;
-    let count = 0;
-    annotation.pages.forEach(page => {
+    let totalConfidence = 0, count = 0;
+    annotation.pages.forEach(page =>
       page.blocks.forEach(block => {
         if (block.confidence !== undefined) {
           totalConfidence += block.confidence;
           count++;
         }
-      });
-    });
+      })
+    );
 
     const avgConfidence = count > 0 ? totalConfidence / count : 0.9;
-
-    // Clean the text
-    const cleanedText = cleanText(annotation.text);
-
-    return {
-      raw_text: cleanedText,
-      confidence: parseFloat(avgConfidence.toFixed(2))
-    };
+    return { raw_text: cleanText(annotation.text), confidence: parseFloat(avgConfidence.toFixed(2)) };
   } catch (err) {
     return { status: 'needs_clarification', message: `Google OCR (URL) failed: ${err.message}` };
   }
