@@ -1,0 +1,21 @@
+# Node modules
+appointment-scheduler-backend/node_modules/
+
+# Environment variables
+appointment-scheduler-backend/.env
+appointment-scheduler-backend/.env.local
+appointment-scheduler-backend/.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel output/build folder
+.vercel/
+.vercel_build_output/
+
+# Google Vision key
+appointment-scheduler-backend/vision-key.json
+
+# IDE files
+.vscode/

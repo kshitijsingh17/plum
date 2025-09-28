@@ -1,0 +1,36 @@
+{
+  "name": "appointment-scheduler-backend",
+  "version": "0.1.0",
+  "description": "AI-Powered Appointment Scheduler - Express backend (modular monolith)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/vision": "^5.3.3",
+    "@mistralai/mistralai": "^1.10.0",
+    "chrono-node": "^2.3.1",
+    "compromise": "^14.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.2",
+    "moment-timezone": "^0.6.0",
+    "mongodb": "^6.20.0",
+    "mongoose": "^7.0.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "ngrok": "^5.0.0-beta.2",
+    "tesseract.js": "^4.0.2",
+    "winston": "^3.8.2"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "nodemon": "^2.0.22",
+    "supertest": "^6.3.3"
+  }
+}
