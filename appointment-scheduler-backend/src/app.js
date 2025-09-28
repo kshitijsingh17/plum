@@ -18,7 +18,7 @@ app.get('/', (req, res) => res.send('Appointment Scheduler API'));
 
 const start = async () => {
   try {
-    //await db.connect(config.dbUri);
+    await db.connect(config.dbUri);
         app.listen(config.port, '0.0.0.0', () => 
       logger.info(`Server running on port ${config.port}`)
     );
