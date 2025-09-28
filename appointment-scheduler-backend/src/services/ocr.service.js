@@ -1,10 +1,30 @@
 // services/ocr.service.js
+// services/ocr.service.js
 import vision from '@google-cloud/vision';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Initialize client from in-memory credentials (works in serverless like Vercel)
+let gcpCredentials = null;
+
+// Use JSON env variable (recommended: set GOOGLE_APPLICATION_CREDENTIALS_JSON in Vercel)
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  try {
+    gcpCredentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  } catch (err) {
+    console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', err);
+  }
+}
+
+const client = gcpCredentials
+  ? new vision.ImageAnnotatorClient({ credentials: gcpCredentials })
+  : new vision.ImageAnnotatorClient(); // fallback to local ADC if present
+
+export default client;
+
+
 // Initialize client (auto-loads credentials from GOOGLE_APPLICATION_CREDENTIALS)
-const client = new vision.ImageAnnotatorClient();
+
 
 /**
  * Clean OCR text: keep only letters, numbers, and spaces
